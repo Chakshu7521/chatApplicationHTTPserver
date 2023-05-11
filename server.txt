@@ -1,0 +1,65 @@
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import logging
+import json
+from urllib.parse import urlparse, parse_qs
+
+chat_history = {}
+
+class ChatServer(BaseHTTPRequestHandler):
+
+    def do_GET(self):
+        global chat_history
+        parsed_path = urlparse(self.path)
+        query_dict = parse_qs(parsed_path.query)
+        client_id = query_dict.get("client_id", [None])[0]
+        if client_id is not None and client_id in chat_history:
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            response_body = json.dumps(chat_history[client_id])
+            self.wfile.write(response_body.encode())
+        else:
+            self.send_response(404)
+            self.end_headers()
+            self.wfile.write(b'Client ID not found.')
+
+    def do_POST(self):
+        global chat_history
+        content_length = int(self.headers['Content-Length'])
+        post_data = self.rfile.read(content_length)
+        message_str = post_data.decode('utf-8')
+        message_dict = json.loads(message_str)
+
+        client_id = message_dict.get('client_id')
+        message = message_dict.get('message')
+        if client_id is not None and message is not None:
+            if client_id not in chat_history:
+                chat_history[client_id] = []
+            chat_history[client_id].append(message)
+
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+        response_body = json.dumps(chat_history)
+        self.wfile.write(response_body.encode())
+
+def run(server_class=HTTPServer, port=8080):
+    logging.basicConfig(level=logging.INFO)
+    server_address = ('', port)
+    httpd = server_class(server_address, ChatServer)
+    logging.info('Starting httpd on port %d...\n' % port)
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        httpd.server_close()
+        logging.info('Stopping httpd...\n')
+
+if __name__ == '__main__':
+    from sys import argv
+
+    if len(argv) == 2:
+        run(port=int(argv[1]))
+    else:
+        run()
