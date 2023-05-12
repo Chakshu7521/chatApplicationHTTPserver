@@ -9,15 +9,18 @@ class ChatServer(BaseHTTPRequestHandler):
 
     def do_GET(self):
         global chat_history
+        # print("Get chat history is ", chat_history)
         parsed_path = urlparse(self.path)
         query_dict = parse_qs(parsed_path.query)
+        # print("Query is ", query_dict)
         client_id = query_dict.get("client_id", [None])[0]
         if client_id is not None and client_id in chat_history:
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            response_body = json.dumps(chat_history[client_id])
-            self.wfile.write(response_body.encode())
+            response_body = json.dumps(chat_history)
+            # print("Body is ",response_body ,type(response_body))
+            self.wfile.write(response_body.encode('utf-8'))
         else:
             self.send_response(404)
             self.end_headers()
@@ -36,6 +39,7 @@ class ChatServer(BaseHTTPRequestHandler):
             if client_id not in chat_history:
                 chat_history[client_id] = []
             chat_history[client_id].append(message)
+        # print("Chat is ", chat_history)
 
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
