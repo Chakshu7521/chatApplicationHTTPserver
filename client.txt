@@ -4,8 +4,13 @@ import json
 def get_messages(yourName):
     url = "http://localhost:8080?client_id=" + str(yourName)
     response = requests.get(url)
-    chat_history = response.json()
-    return chat_history
+    # print("Rsponse is ", response, type(response))
+    try:
+        chat_history = response.json()
+        # print("Chat history is ", chat_history)
+        return chat_history
+    except Exception as e:
+        print(e)
 
 
 def post_message(message, client_id):
@@ -24,11 +29,11 @@ while True:
     if message.lower() == "exit":
         break
     post_message(message,client_id)
-    chat_history = get_messages(yourName)
+    chat_history = get_messages(client_id)
     
-    if isinstance(chat_history, dict) and client_id in chat_history:
+    if isinstance(chat_history, dict) and yourName in chat_history:
         print("Chat history:")
-        for msg in chat_history[client_id]:
+        for msg in chat_history[yourName]:
             print(msg)
     else:
         print("Invalid chat history format")
